@@ -248,7 +248,21 @@ static ngx_int_t ngx_mds_init_module(ngx_cycle_t* cycle) {
 	return NGX_OK;
 }
 
-void
+static int
+ngx_mds_con_freed(ngx_connection_t *c) {
+	ngx_connection_t *c_free = ngx_cycle->free_connections;
+	
+	while(c_free!=NULL) {
+		if(c_free==c)
+			return 1;
+		
+		c_free = c_free->data;
+	}
+	
+	return 0;
+}
+
+static void
 ngx_mds_init_proc_ev_con_handler(ngx_event_t *ev) {
 	int n;
 	
@@ -273,6 +287,9 @@ ngx_mds_init_proc_ev_con_handler(ngx_event_t *ev) {
 		ngx_http_log_ctx_t *ctx;
 	
 		c = (ngx_connection_t *)&ngx_cycle->connections[n];
+
+		if(ngx_mds_con_freed(c))
+			continue;
 
 		int pass = 0;
 		if(sync_zone->expl && c && c->log && c->log->data && ((c->read->active && !c->read->ready) || (c->write->active && !c->write->ready)) && c->fd != -1) {

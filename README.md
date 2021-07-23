@@ -3,18 +3,28 @@ nginx mod status module
 
 - compile:
 
-- cd to nginx dir, run:
+	- cd to nginx source dir, run:
 
-export CFLAGS="-Wno-error=unused -g -O2"
-auto/configure --with-compat --add-dynamic-module='/path/to/ngx_mod_status_module' --with-http_stub_status_module --with-threads
+		export CFLAGS="-Wno-error=unused -O2"
+		auto/configure --with-compat --add-dynamic-module='/path/to/ngx_mod_status' --add-dynamic-module='/path/to/ngx_mds_epoll' \
+			--with-http_stub_status_module --with-threads
 
-make
+		make
 
-- add --with-debug for debugging
+	- add --with-debug for debugging
 
-- module is found in objs dir
+- module is found in objs dir, the files are ngx_mds_epoll.so and ngx_mod_status.so, include both files, in nginx configuration
+	
+	i.e: nginx.conf
+
+		load_module /path/to/ngx_mds_epoll.so;
+		load_module /path/to/ngx_mod_status.so;
 
 - edit nginx.conf to load module:
+
+		events {
+			use mds_epoll;
+		}
 
 		location = /basic_status {
 			ngx_mds;
@@ -27,6 +37,12 @@ make
             root /path/to/js_file;
             index  index.html index.htm;
         }
+
+- ngx_mds_epoll.so is optional, if used enable it int events configuration as bellow: 
+	
+		events {
+			use mds_epoll;
+		}
 
 - edit js file and change script_name variable if location = /basic_status is changed
 

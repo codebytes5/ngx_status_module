@@ -7,21 +7,21 @@ typedef struct {
 	ngx_int_t msg_size;
 	ngx_int_t msg_count;
 	ngx_event_t ev_con;
-	
+
 	char *buf_stat;
 	char *buf_remote;
 	char *buf_host;
 	char *buf_request;
-	
+
 	ngx_http_request_t *r;
-	
+
 	int* bmp_acc;
 	int* bmp_log;
-	
+
 	ngx_int_t has_mds_epoll;
-	
+
 	ngx_str_t addr_text;
-	
+
 	ngx_int_t long_str_size;
 } ngx_mds_main_ctx_t;
 
@@ -31,7 +31,7 @@ typedef struct {
 	ngx_uint_t record_msec;
 	ngx_uint_t record_msec_start;
 	ngx_uint_t record_msec_elapsed;
-	
+
 	ngx_uint_t expl;
 } ngx_mds_sync_t;
 

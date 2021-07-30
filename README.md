@@ -4,6 +4,7 @@ nginx mod status module
 - compile:
 
 	- cd to nginx source dir, run:
+
 ```
 	export CFLAGS="-Wno-error=unused -O2"
 	auto/configure --with-compat --add-dynamic-module='/path/to/ngx_mod_status' --add-dynamic-module='/path/to/ngx_mds_epoll' \
@@ -17,12 +18,14 @@ nginx mod status module
 - module is found in objs dir, the files are ngx_mds_epoll.so and ngx_mod_status.so, include both files, in nginx configuration
 	
 	i.e: nginx.conf
+
 ```
 	load_module /path/to/ngx_mds_epoll.so;
 	load_module /path/to/ngx_mod_status.so;
 ```
 
 - edit nginx.conf to load module:
+
 ```
 	events {
 		use mds_epoll;
@@ -41,7 +44,8 @@ nginx mod status module
 	}
 ```
 
-- ngx_mds_epoll.so is optional, if used enable it int events configuration as bellow: 
+- ngx_mds_epoll.so is optional, if used enable it int events configuration as bellow:
+
 ```
 	events {
 		use mds_epoll;
@@ -56,6 +60,7 @@ nginx mod status module
 		of the js variable, thus arround 1000
 		
 		i.e:
+
 ```
 	browser: /basic_status?refresh=1000
 	ngx_mod_status.js: var refresh = 500;
@@ -64,13 +69,16 @@ nginx mod status module
 	- activate experimental lingering scan by using expl variable in browser
 	
 		i.e:
+
 ```
 	browser turn on expl: /basic_status?expl=1
 	browser turn off expl: /basic_status?expl=0
 ```
+
 	- combine tuning variables
 	
 		i.e:
+
 ```
 	browser: /basic_status?refresh=1000&expl=0
 ```

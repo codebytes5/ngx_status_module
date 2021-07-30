@@ -196,7 +196,7 @@ static ngx_http_variable_t  ngx_mds_vars[] = {
 static ngx_int_t ngx_mds_init_module(ngx_cycle_t* cycle) {
 	ngx_mds_main_ctx_t *ngx_mds_main_ctx = ngx_http_cycle_get_module_main_conf(cycle, ngx_mod_status);
 
-	if(!ngx_mds_main_ctx) {
+	if(ngx_mds_main_ctx == NULL) {
 		return NGX_ERROR;
 	}
 
@@ -234,6 +234,9 @@ ngx_mds_con_freed(ngx_connection_t *c) {
 static void
 ngx_mds_init_proc_ev_con_handler(ngx_event_t *ev) {
 	int n;
+
+	if(ngx_exiting || ev == NULL)
+		return;
 
 	ngx_mds_main_ctx_t *ngx_mds_main_ctx = ngx_http_cycle_get_module_main_conf(ngx_cycle, ngx_mod_status);
 	ngx_slab_pool_t *shpool = (ngx_slab_pool_t *)ngx_mds_main_ctx->shm_zone->shm.addr;
@@ -294,7 +297,7 @@ ngx_mds_init_proc(ngx_cycle_t* cycle) {
 
 	ngx_core_conf_t *ccf = (ngx_core_conf_t *) ngx_get_conf(ngx_cycle->conf_ctx, ngx_core_module);
 
-	if(!ngx_mds_main_ctx) {
+	if(ngx_mds_main_ctx == NULL) {
 		return NGX_ERROR;
 	}
 
@@ -313,8 +316,6 @@ ngx_mds_init_proc(ngx_cycle_t* cycle) {
 
 	// experimental, probably should comment below
 	ngx_add_timer(ev, DFT_TMR_MS);
-
-
 
 	return NGX_OK;
 }
@@ -934,7 +935,7 @@ ngx_mds_phase_handler(ngx_http_request_t *r, int phase_idx, int do_lock, ngx_con
 	ngx_mds_main_ctx_t *ngx_mds_main_ctx = ngx_http_cycle_get_module_main_conf(ngx_cycle, ngx_mod_status);
 	ngx_slab_pool_t *shpool = (ngx_slab_pool_t *)ngx_mds_main_ctx->shm_zone->shm.addr;
 
-	if(!ngx_mds_main_ctx) {
+	if(ngx_mds_main_ctx == NULL) {
 		return NGX_ERROR;
 	}
 
@@ -1146,7 +1147,7 @@ ngx_mds_init_main_conf(ngx_conf_t *cf, void *conf) {
 
 	ngx_mds_main_ctx_t *ngx_mds_main_ctx = ngx_http_conf_get_module_main_conf(cf, ngx_mod_status);
 
-	if(!ngx_mds_main_ctx) {
+	if(ngx_mds_main_ctx == NULL) {
 		return NGX_CONF_ERROR;
 	}
 

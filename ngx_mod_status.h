@@ -40,6 +40,7 @@ typedef struct {
 	ngx_int_t phase_log_idx;
 	ngx_int_t phase_acc_len;
 	ngx_int_t phase_log_len;
+	ngx_int_t pid;
 } ngx_mds_sync_proc_t;
 
 #define BMP_WRD_SZ (sizeof(int))

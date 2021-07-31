@@ -36,19 +36,38 @@ window.onload = () => {
 	}
 
 	//
+	document.getElementById('stats').innerHTML = "\nPIDs: "+stats_arr.map((el, idx) => el.pid + (idx==stats_arr.length-1 ? "" : ", ")).join('')+"\n";
 
+	var cell_style = "\"white-space: nowrap; padding: 0 10px 0 10px;\"";
+	var first_cell_style = "\"white-space: nowrap; padding: 0 10px 0 0px;\"";
 
-	document.getElementById('stats').innerHTML = "\nActive connections:\n\n"+stats_arr.map((el, idx) => {
-		return ("proc "+idx+":\n\n")+el.acc.map(el_acc => {
-			return el_acc.map((el_stat, el_stat_idx) => el_stat_idx ? el_stat : el_stat).join(' ');
-		}).join('\n');
-	}).join('\n\n');
+	var table_header = "<tr>\
+		<td style="+first_cell_style+"><b>PID</b></td>\
+		<td style="+cell_style+"><b>Con Id</b></td>\
+		<td style="+cell_style+"><b>R</b></td>\
+		<td style="+cell_style+"><b>W</b></td>\
+		<td style="+cell_style+"><b>P</b></td>\
+		<td style="+cell_style+"><b>Port</b></td>\
+		<td style="+cell_style+"><b>Client</b></td>\
+		<td style="+cell_style+"><b>Vhost</b></td>\
+		<td style="+cell_style+"><b>Request</b></td>\
+	</tr>";
 
-	document.getElementById('stats').innerHTML += "\n\nLingering connections:\n\n"+stats_arr.map((el, idx) => {
-		return ("proc "+idx+":\n\n")+el.log.map(el_acc => {
-			return el_acc.map((el_stat, el_stat_idx) => el_stat_idx ? el_stat : el_stat).join(' ');
-		}).join('\n');
-	}).join('\n\n');/**/
+	document.getElementById('stats').innerHTML += "\nActive connections:\n\n"+"<table>"+table_header+
+	stats_arr.map((el, idx) => {
+		return el.acc.map(el_acc => {
+			return ("<tr><td style="+first_cell_style+">"+el.pid+"</td>")+el_acc.map((el_stat, el_stat_idx) =>
+					"<td><div style="+cell_style+">" + el_stat+"</div></td>").join('')+"</tr>";
+		}).join('');
+	}).join('')+"</table>";
+
+	document.getElementById('stats').innerHTML += "\nLingering connections:\n\n"+"<table>"+table_header+
+	stats_arr.map((el, idx) => {
+		return el.log.map(el_acc => {
+			return ("<tr><td style="+first_cell_style+">"+el.pid+"</td>")+el_acc.map((el_stat, el_stat_idx) =>
+					"<td><div style="+cell_style+">" + el_stat+"</div></td>").join('')+"</tr>";
+		}).join('');
+	}).join('')+"</table>";/**/
 
 	document.getElementById('stats').innerHTML += "\n\n/"+script_name+"?refresh=1000 - change recording time in ms\n";
 

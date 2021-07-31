@@ -28,6 +28,7 @@ static ngx_int_t ngx_mds_postconf(ngx_conf_t *cf);
 static ngx_int_t ngx_mds_access_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_mds_phase_handler(ngx_http_request_t *r, int phase_idx, int do_lock, ngx_connection_t *c, int ignore_rec);
 static void ngx_mds_reset_buf_indices(int reset_acc, int reset_log, int proc_idx);
+static ngx_int_t get_buf(int proc_idx, char **buf, ngx_mds_sync_proc_t **sync_proc, ngx_mds_main_ctx_t *ngx_mds_main_ctx, int phase_idx, int from_start);
 
 //static ngx_shmtx_t ngx_mds_mutex;
 
@@ -293,6 +294,9 @@ ngx_mds_init_proc_ev_con_handler(ngx_event_t *ev) {
 static ngx_int_t
 ngx_mds_init_proc(ngx_cycle_t* cycle) {
 	ngx_event_t *ev;
+	ngx_mds_sync_proc_t *sync_proc;
+	char *buf_acc;
+
 	ngx_mds_main_ctx_t *ngx_mds_main_ctx = ngx_http_cycle_get_module_main_conf(cycle, ngx_mod_status);
 
 	ngx_core_conf_t *ccf = (ngx_core_conf_t *) ngx_get_conf(ngx_cycle->conf_ctx, ngx_core_module);
@@ -300,6 +304,10 @@ ngx_mds_init_proc(ngx_cycle_t* cycle) {
 	if(ngx_mds_main_ctx == NULL) {
 		return NGX_ERROR;
 	}
+
+	int ret = get_buf(ngx_process_slot, &buf_acc, &sync_proc, ngx_mds_main_ctx, PHASE_ACC_IDX, 1);
+
+	sync_proc->pid = ngx_getpid();
 
 	char* buf;
 
@@ -521,9 +529,9 @@ ngx_mds_stats_handler(ngx_http_request_t *r) {
 		ngx_mds_sync_proc_t *sync_proc;
 		char *buf_acc, *buf_log;
 
-		char* buf_obj = "{acc:[%s],log:[%s]},";
+		char* buf_obj = "{pid:%d,acc:[%s],log:[%s]},";
 		if(i==ccf->worker_processes-1)
-			buf_obj = "{acc:[%s],log:[%s]}";
+			buf_obj = "{pid:%d,acc:[%s],log:[%s]}";
 
 		int len_acc = -1, len_log = -1;
 		ngx_int_t ret;
@@ -535,13 +543,13 @@ ngx_mds_stats_handler(ngx_http_request_t *r) {
 		len_log = sync_proc->phase_log_len;
 
 		//
-		len = snprintf(0, 0, buf_obj, buf_acc, buf_log);
+		len = snprintf(0, 0, buf_obj, sync_proc->pid, buf_acc, buf_log);
 		if(len<0)
 			return NGX_HTTP_INTERNAL_SERVER_ERROR;
 		b = ngx_create_temp_buf(r->pool, len);
 		if(b == NULL)
 			return NGX_HTTP_INTERNAL_SERVER_ERROR;
-		b->last = ngx_sprintf(b->last, buf_obj, buf_acc, buf_log);
+		b->last = ngx_sprintf(b->last, buf_obj, sync_proc->pid, buf_acc, buf_log);
 		if(add_ngx_buf(&cl, &ll, b, r))
 			return NGX_HTTP_INTERNAL_SERVER_ERROR;
 		len_tot += len;

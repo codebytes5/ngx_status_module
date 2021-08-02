@@ -34,8 +34,8 @@ static ngx_event_module_t  ngx_mds_epoll_module_ctx = {
 	{
 		ngx_mds_epoll_add_event,             /* add an event */
 		ngx_mds_epoll_del_event,             /* delete an event */
-		ngx_mds_epoll_add_event,             /* enable an event */
-		ngx_mds_epoll_del_event,             /* disable an event */
+		ngx_epoll_add_event,             /* enable an event */
+		ngx_epoll_del_event,             /* disable an event */
 		ngx_mds_epoll_add_connection,        /* add an connection */
 		ngx_mds_epoll_del_connection,        /* delete an connection */
 #if (NGX_HAVE_EVENTFD)
@@ -133,13 +133,9 @@ ngx_mds_epoll_add_connection(ngx_connection_t *c) {
 	return ngx_epoll_add_connection(c);
 
 	/*if(ngx_mds_main_ctx) {
-		ngx_connection_t    *c;
-
-		c = ev->data;
-
 		int bit_pos = ((ngx_connection_t*)c)-((ngx_connection_t*)ngx_cycle->connections);
 
-		ngx_mds_main_ctx->bmp_acc[BMP_POS(bit_pos)] |= BMP_SET(bit_pos);/
+		ngx_mds_main_ctx->bmp_acc[BMP_POS(bit_pos)] |= BMP_SET(bit_pos);
 	}
 
 	return ngx_epoll_add_connection(c);*/
@@ -150,10 +146,6 @@ ngx_mds_epoll_del_connection(ngx_connection_t *c, ngx_uint_t flags) {
 	return ngx_epoll_del_connection(c, flags);
 
 	/*if(ngx_mds_main_ctx) {
-		ngx_connection_t    *c;
-
-		c = ev->data;
-
 		int bit_pos = ((ngx_connection_t*)c)-((ngx_connection_t*)ngx_cycle->connections);
 
 		ngx_mds_main_ctx->bmp_acc[BMP_POS(bit_pos)] &= BMP_CLR(bit_pos);

@@ -1110,13 +1110,15 @@ ngx_mds_postconf(ngx_conf_t *cf) {
 
 		*h = ngx_mds_post_read_handler;
 
-		h = ngx_array_push(&cmcf->phases[NGX_HTTP_LOG_PHASE].handlers);
-		if(h == NULL) {
-			return NGX_ERROR;
-		}
-
-		*h = ngx_mds_log_handler;
 	}
+
+	h = ngx_array_push(&cmcf->phases[NGX_HTTP_LOG_PHASE].handlers);
+	if(h == NULL) {
+		return NGX_ERROR;
+	}
+
+	*h = ngx_mds_log_handler;
+
 
 	return NGX_OK;
 }

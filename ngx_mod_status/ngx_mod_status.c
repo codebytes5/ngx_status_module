@@ -7,6 +7,9 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#define __USE_GNU
+#define __USE_KERNEL_IPV6_DEFS 0
+
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>

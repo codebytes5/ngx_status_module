@@ -85,6 +85,6 @@ nginx mod status module
 
 - tested with nginx 1.16.0, 1.20.0
 
-- support at cobyce@yahoo.com
+- for support or commecial use contact cobyce@yahoo.com
 
 

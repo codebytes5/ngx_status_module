@@ -105,7 +105,7 @@ is_outbounded(ngx_int_t val, ngx_int_t min, ngx_int_t max) {
 #define PH_SZ 1
 #define PORT_SZ 5
 
-static char* stat_json = "[\"%lx\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"]";
+static char* stat_json = "[\"%lx\",\"%s\",\"%s\",\"%s\",\"%d\",\"%s\",\"%s\",\"%s\"]";
 static char* stat_json_c = "[\"%lx\",\"%s\"]";
 
 static ngx_command_t  ngx_mds_commands[] = {
@@ -875,11 +875,7 @@ gen_stat_json(ngx_http_request_t *r, ngx_mds_main_ctx_t *ngx_mds_main_ctx, int *
 
 	c = r->connection;
 
-	int port_len = r->port_end - r->port_start;
-	char port[port_len+1];
-	memcpy(port, r->port_start, port_len);
-	port[port_len] = 0;/**/
-	//char* port = "";
+	int port = ngx_inet_get_port(c->local_sockaddr);
 
 	int remote_len = c->addr_text.len>ngx_mds_main_ctx->long_str_size-1 ? ngx_mds_main_ctx->long_str_size-1 : c->addr_text.len;
 	memcpy(ngx_mds_main_ctx->buf_remote, c->addr_text.data, remote_len);
@@ -893,7 +889,7 @@ gen_stat_json(ngx_http_request_t *r, ngx_mds_main_ctx_t *ngx_mds_main_ctx, int *
 	memcpy(ngx_mds_main_ctx->buf_request, r->request_line.data, request_len);
 	ngx_mds_main_ctx->buf_request[request_len] = 0;
 
-	ngx_connection_t* conn_id = ((ngx_connection_t*)c)-((ngx_connection_t*)ngx_cycle->connections);//c;//*ngx_connection_counter;//c->number
+	ngx_connection_t* conn_id = (ngx_connection_t*)(((ngx_connection_t*)c)-((ngx_connection_t*)ngx_cycle->connections));
 
 	int len = snprintf(0, 0, stat_json,
 					   conn_id, r->stat_reading ? "R" : "-", r->stat_writing ? "W" : "-", r->stat_processing ? "P" : "-", port,
@@ -924,7 +920,7 @@ gen_stat_json_c(ngx_connection_t *c, ngx_mds_main_ctx_t *ngx_mds_main_ctx, int *
 	memcpy(ngx_mds_main_ctx->buf_remote, c->addr_text.data, remote_len);
 	ngx_mds_main_ctx->buf_remote[remote_len] = 0;
 
-	ngx_connection_t* conn_id = ((ngx_connection_t*)c)-((ngx_connection_t*)ngx_cycle->connections);//c;//*ngx_connection_counter;
+	ngx_connection_t* conn_id = (ngx_connection_t*)(((ngx_connection_t*)c)-((ngx_connection_t*)ngx_cycle->connections));
 
 	int len = snprintf(0, 0, stat_json_c, conn_id, ngx_mds_main_ctx->buf_remote);
 	if(len<0)
@@ -1214,18 +1210,18 @@ ngx_mds_init_main_conf(ngx_conf_t *cf, void *conf) {
 	buf = ngx_pcalloc(cf->pool, sizeof(ngx_http_request_t));
 	if(buf==NULL)
 		return NGX_CONF_ERROR;
-	ngx_mds_main_ctx->r = buf;
+	ngx_mds_main_ctx->r = (ngx_http_request_t*)buf;
 
 	buf = ngx_pcalloc(cf->pool, BMP_SZ(cf->cycle->connection_n));
 	if(buf==NULL)
 		return NGX_CONF_ERROR;
-	ngx_mds_main_ctx->bmp_acc = buf;
+	ngx_mds_main_ctx->bmp_acc = (int*)buf;
 	memset(ngx_mds_main_ctx->bmp_acc, 0, BMP_SZ(cf->cycle->connection_n));
 
 	buf = ngx_pcalloc(cf->pool, BMP_SZ(cf->cycle->connection_n));
 	if(buf==NULL)
 		return NGX_CONF_ERROR;
-	ngx_mds_main_ctx->bmp_log = buf;
+	ngx_mds_main_ctx->bmp_log = (int*)buf;
 	memset(ngx_mds_main_ctx->bmp_log, 0, BMP_SZ(cf->cycle->connection_n));
 
 	ngx_mds_main_ctx->long_str_size = long_str_size;

@@ -25,8 +25,6 @@ static char *ngx_mds_set_commands(ngx_conf_t *cf, ngx_command_t *cmd,
 static void *ngx_mds_create_main_conf(ngx_conf_t *cf);
 static char *ngx_mds_init_main_conf(ngx_conf_t *cf, void *conf);
 static ngx_int_t ngx_mds_init_proc(ngx_cycle_t* cycle);
-static void *ngx_mds_create_loc_conf(ngx_conf_t *cf);
-static char *ngx_mds_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 static ngx_int_t ngx_mds_postconf(ngx_conf_t *cf);
 static ngx_int_t ngx_mds_access_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_mds_phase_handler(ngx_http_request_t *r, int phase_idx, int do_lock, ngx_connection_t *c, int ignore_rec);
@@ -221,7 +219,7 @@ static ngx_int_t ngx_mds_init_module(ngx_cycle_t* cycle) {
 	return NGX_OK;
 }
 
-static int
+extern int
 ngx_mds_con_freed(ngx_connection_t *c) {
 	ngx_connection_t *c_free = ngx_cycle->free_connections;
 
@@ -237,7 +235,7 @@ ngx_mds_con_freed(ngx_connection_t *c) {
 
 static void
 ngx_mds_init_proc_ev_con_handler(ngx_event_t *ev) {
-	int n;
+	ngx_uint_t n;
 
 	if(ngx_exiting || ev == NULL)
 		return;
@@ -302,17 +300,15 @@ ngx_mds_init_proc(ngx_cycle_t* cycle) {
 
 	ngx_mds_main_ctx_t *ngx_mds_main_ctx = ngx_http_cycle_get_module_main_conf(cycle, ngx_mod_status);
 
-	ngx_core_conf_t *ccf = (ngx_core_conf_t *) ngx_get_conf(ngx_cycle->conf_ctx, ngx_core_module);
-
 	if(ngx_mds_main_ctx == NULL) {
 		return NGX_ERROR;
 	}
 
-	int ret = get_buf(ngx_process_slot, &buf_acc, &sync_proc, ngx_mds_main_ctx, PHASE_ACC_IDX, 1);
+	get_buf(ngx_process_slot, &buf_acc, &sync_proc, ngx_mds_main_ctx, PHASE_ACC_IDX, 1);
 
 	sync_proc->pid = ngx_getpid();
 
-	char* buf;
+	u_char* buf;
 
 	buf = ngx_alloc(NGX_SOCKADDR_STRLEN, cycle->log);
 	if(buf==NULL)
@@ -441,7 +437,7 @@ ngx_mds_send_header(ngx_http_request_t *r, char* content_type) {
 	}
 
 	r->headers_out.content_type_len = strlen(content_type);
-	r->headers_out.content_type.data = content_type;
+	r->headers_out.content_type.data = (u_char*)content_type;
 	r->headers_out.content_type.len = r->headers_out.content_type_len;
 	r->headers_out.content_type_lowcase = NULL;
 
@@ -469,10 +465,9 @@ ngx_mds_try_stop_rec(ngx_mds_sync_t *sync_zone, ngx_uint_t msec) {
 static ngx_int_t
 ngx_mds_stats_handler(ngx_http_request_t *r) {
 	ngx_int_t rc;
-	ngx_int_t msec_left;
 	ngx_core_conf_t *ccf;
 
-	ngx_atomic_int_t ap, hn, ac, rq, rd, wr, wa;
+	ngx_atomic_int_t ap, hn, rq, rd, wr, wa;
 
 	ngx_buf_t *b;
 	ngx_chain_t *chain;
@@ -480,7 +475,6 @@ ngx_mds_stats_handler(ngx_http_request_t *r) {
 
 	ap = *ngx_stat_accepted;
 	hn = *ngx_stat_handled;
-	ac = *ngx_stat_active;
 	rq = *ngx_stat_requests;
 	rd = *ngx_stat_reading;
 	wr = *ngx_stat_writing;
@@ -488,7 +482,6 @@ ngx_mds_stats_handler(ngx_http_request_t *r) {
 
 	ll = &chain;
 
-	unsigned int n;
 	ngx_cycle_t *cycle = (ngx_cycle_t *) ngx_cycle;
 
 	int len_tot = 0;
@@ -513,7 +506,7 @@ ngx_mds_stats_handler(ngx_http_request_t *r) {
 	ngx_slab_pool_t *shpool = (ngx_slab_pool_t *)ngx_mds_main_ctx->shm_zone->shm.addr;
 	ngx_mds_sync_t *sync_zone = (ngx_mds_sync_t *)(((char *)ngx_mds_main_ctx->shm_zone->shm.addr)+sizeof(ngx_slab_pool_t));
 
-	int is_recording = 0;
+	//int is_recording = 0;
 
 	ngx_shmtx_lock(&shpool->mutex);
 	//ngx_shmtx_trylock(&shpool->mutex);
@@ -524,7 +517,7 @@ ngx_mds_stats_handler(ngx_http_request_t *r) {
 
 	ngx_mds_try_stop_rec(sync_zone, msec);
 
-	is_recording = sync_zone->is_recording;
+	//is_recording = sync_zone->is_recording;
 
 	//if(!is_recording) {
 	int i;
@@ -536,15 +529,10 @@ ngx_mds_stats_handler(ngx_http_request_t *r) {
 		if(i==ccf->worker_processes-1)
 			buf_obj = "{pid:%d,acc:[%s],log:[%s]}";
 
-		int len_acc = -1, len_log = -1;
-		ngx_int_t ret;
-
-		ret = get_buf(i, &buf_acc, &sync_proc, ngx_mds_main_ctx, PHASE_ACC_IDX, 1);
-		len_acc = sync_proc->phase_acc_len;
-
-		ret = get_buf(i, &buf_log, &sync_proc, ngx_mds_main_ctx, PHASE_LOG_IDX, 1);
-		len_log = sync_proc->phase_log_len;
-
+		get_buf(i, &buf_acc, &sync_proc, ngx_mds_main_ctx, PHASE_ACC_IDX, 1);
+		
+		get_buf(i, &buf_log, &sync_proc, ngx_mds_main_ctx, PHASE_LOG_IDX, 1);
+		
 		//
 		len = snprintf(0, 0, buf_obj, sync_proc->pid, buf_acc, buf_log);
 		if(len<0)
@@ -681,7 +669,6 @@ ngx_mds_stats_handler(ngx_http_request_t *r) {
 static ngx_int_t
 ngx_mds_ok_response_handler(ngx_http_request_t *r) {
 	ngx_int_t rc;
-	ngx_core_conf_t *ccf;
 
 	ngx_buf_t *b;
 	ngx_chain_t *chain;
@@ -724,11 +711,9 @@ _ngx_mds_reset_buf_indices(int reset_acc, int reset_log, int proc_idx, ngx_mds_m
 	ngx_mds_sync_proc_t *sync_proc;
 	char *buf_acc, *buf_log;
 
-	ngx_int_t ret;
+	get_buf(proc_idx, &buf_acc, &sync_proc, ngx_mds_main_ctx, PHASE_ACC_IDX, 1);
 
-	ret = get_buf(proc_idx, &buf_acc, &sync_proc, ngx_mds_main_ctx, PHASE_ACC_IDX, 1);
-
-	ret = get_buf(proc_idx, &buf_log, &sync_proc, ngx_mds_main_ctx, PHASE_LOG_IDX, 1);
+	get_buf(proc_idx, &buf_log, &sync_proc, ngx_mds_main_ctx, PHASE_LOG_IDX, 1);
 
 	if(reset_acc) {
 		sync_proc->phase_acc_idx = 0;
@@ -765,13 +750,10 @@ static ngx_int_t
 ngx_mds_handler(ngx_http_request_t *r) {
 	ngx_int_t rc;
 	ngx_str_t arg_cmd;
-	ngx_int_t msec;
-	ngx_core_conf_t *ccf;
 
 	ngx_mds_main_ctx_t *ngx_mds_main_ctx = ngx_http_get_module_main_conf(r, ngx_mod_status);
 	ngx_slab_pool_t *shpool = (ngx_slab_pool_t *)ngx_mds_main_ctx->shm_zone->shm.addr;
 	ngx_mds_sync_t *sync_zone = (ngx_mds_sync_t *)(((char *)ngx_mds_main_ctx->shm_zone->shm.addr)+sizeof(ngx_slab_pool_t));
-	ccf = (ngx_core_conf_t *) ngx_get_conf(ngx_cycle->conf_ctx, ngx_core_module);
 
 	rc = ngx_mds_send_header(r, "text/html");
 
@@ -877,15 +859,15 @@ gen_stat_json(ngx_http_request_t *r, ngx_mds_main_ctx_t *ngx_mds_main_ctx, int *
 
 	int port = ngx_inet_get_port(c->local_sockaddr);
 
-	int remote_len = c->addr_text.len>ngx_mds_main_ctx->long_str_size-1 ? ngx_mds_main_ctx->long_str_size-1 : c->addr_text.len;
+	int remote_len = (ngx_int_t)c->addr_text.len>ngx_mds_main_ctx->long_str_size-1 ? ((int)ngx_mds_main_ctx->long_str_size)-1 : (int)c->addr_text.len;
 	memcpy(ngx_mds_main_ctx->buf_remote, c->addr_text.data, remote_len);
 	ngx_mds_main_ctx->buf_remote[remote_len] = 0;
 
-	int host_len = r->headers_in.server.len>ngx_mds_main_ctx->long_str_size-1 ? ngx_mds_main_ctx->long_str_size-1 : r->headers_in.server.len;
+	int host_len = (ngx_int_t)r->headers_in.server.len>ngx_mds_main_ctx->long_str_size-1 ? ((int)ngx_mds_main_ctx->long_str_size)-1 : (int)r->headers_in.server.len;
 	memcpy(ngx_mds_main_ctx->buf_host, r->headers_in.server.data, host_len);
 	ngx_mds_main_ctx->buf_host[host_len] = 0;
 
-	int request_len = r->request_line.len>ngx_mds_main_ctx->long_str_size-1 ? ngx_mds_main_ctx->long_str_size-1 : r->request_line.len;
+	int request_len = (ngx_int_t)r->request_line.len>ngx_mds_main_ctx->long_str_size-1 ? ((int)ngx_mds_main_ctx->long_str_size)-1 : (int)r->request_line.len;
 	memcpy(ngx_mds_main_ctx->buf_request, r->request_line.data, request_len);
 	ngx_mds_main_ctx->buf_request[request_len] = 0;
 
@@ -916,7 +898,7 @@ gen_stat_json_c(ngx_connection_t *c, ngx_mds_main_ctx_t *ngx_mds_main_ctx, int *
 	memcpy(ngx_mds_main_ctx->buf_remote, ngx_mds_main_ctx->addr_text.data, remote_len);
 	ngx_mds_main_ctx->buf_remote[remote_len] = 0;*/
 
-	int remote_len = c->addr_text.len>ngx_mds_main_ctx->long_str_size-1 ? ngx_mds_main_ctx->long_str_size-1 : c->addr_text.len;
+	int remote_len = (ngx_int_t)c->addr_text.len>ngx_mds_main_ctx->long_str_size-1 ? ((int)ngx_mds_main_ctx->long_str_size)-1 : (int)c->addr_text.len;
 	memcpy(ngx_mds_main_ctx->buf_remote, c->addr_text.data, remote_len);
 	ngx_mds_main_ctx->buf_remote[remote_len] = 0;
 
@@ -932,7 +914,6 @@ gen_stat_json_c(ngx_connection_t *c, ngx_mds_main_ctx_t *ngx_mds_main_ctx, int *
 	return NGX_OK;
 }
 
-static int do_exi = 0;
 static ngx_int_t
 ngx_mds_phase_handler(ngx_http_request_t *r, int phase_idx, int do_lock, ngx_connection_t *c, int ignore_rec) {
 	ngx_mds_sync_proc_t *sync_proc = 0;
@@ -1256,12 +1237,12 @@ ngx_mds_set_commands(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
 	ngx_mds_main_ctx_t *ngx_mds_main_ctx = ngx_http_conf_get_module_main_conf(cf, ngx_mod_status);
 
 	value = cf->args->elts;
-	if(!strcmp(value[0].data, CMD_MSG_HNDL)) {
+	if(!strcmp((char*)value[0].data, CMD_MSG_HNDL)) {
 		clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
 		clcf->handler = ngx_mds_handler;
-	} else if(!strcmp(value[0].data, CMD_MSG_SIZE) && cf->args->nelts == 2) {
+	} else if(!strcmp((char*)value[0].data, CMD_MSG_SIZE) && cf->args->nelts == 2) {
 		ngx_mds_main_ctx->msg_size = ngx_atoi(value[1].data, value[1].len);
-	} else if(!strcmp(value[0].data, CMD_MSG_CNT) && cf->args->nelts == 2) {
+	} else if(!strcmp((char*)value[0].data, CMD_MSG_CNT) && cf->args->nelts == 2) {
 		ngx_mds_main_ctx->msg_count = ngx_atoi(value[1].data, value[1].len);
 	}
 

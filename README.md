@@ -7,7 +7,7 @@ nginx mod status module
 by nginx; it displays the info in a table similar to the one provided by apache in their plugin; there's also an epoll plugin for 
 linux provided which catches the lingering conections that don't get closed by nginx.
 
-![screenshot](screenshots/Screenshot from 2026-01-28 12-30-27.png)
+![screenshot](./screenshots/Screenshot from 2026-01-28 12-30-27.png)
 
 - compile:
 
